@@ -1,12 +1,14 @@
 # Multi-Agent Book Writer
 
-A Laravel application that writes a three-chapter book about India's Unified Payments
-Interface (UPI) using five cooperating agents, real web research, and numbered
-citations that are structurally impossible to fabricate.
+A book-generating application built around five cooperating agents, real web
+research, and numbered citations that are structurally impossible to fabricate.
 
-No Python is involved anywhere in the application. Everything is PHP 8.2 and
-Laravel 12.69, with **zero known dependency vulnerabilities**
-(`composer audit` is clean).
+You supply a brief. The system researches the subject, plans an outline, drafts
+each chapter from fetched sources only, edits for grammar and tone, and
+fact-checks every claim against the text it came from.
+
+Built on PHP 8.2 and Laravel 12.69, with **zero known dependency
+vulnerabilities** (`composer audit` is clean).
 
 ---
 
@@ -19,8 +21,8 @@ Laravel 12.69, with **zero known dependency vulnerabilities**
 | Every fact, figure and date carries `[n]` | `CitationService::enforce()` deletes any marker that does not resolve to a fetched source |
 | Reference list per chapter with name, title, link | `BookRenderer` renders a `#### References` block per chapter |
 | Sources real and publicly accessible | `SourceVerifier` does an HTTP reachability check; unreachable sources are dropped before drafting |
-| Prefer official sources (NPCI, RBI, government) | `config/ai.php` `preferred_domains` rotate first; `AI_TAVILY_INCLUDE_DOMAINS` is a server-side allow-list |
-| Sources must not be invented | The Writer is given fetched source text only and may cite nothing else — see [below](#the-problem-this-is-actually-solving) |
+| Prefer official sources over blogs and aggregators | `config/ai.php` `preferred_domains` rotate first; `AI_TAVILY_INCLUDE_DOMAINS` is a server-side allow-list |
+| Sources must not be invented | The Writer is given fetched source text only and may cite nothing else — see [below](#the-problem-this-solves) |
 | Friendly mentor tone, consistent across chapters | Style rule in `BookBrief`, re-asserted on every revision pass |
 | Plain English, no jargon, explain terms on first use | Style rule in `BookBrief` |
 | Correct grammar, spelling, punctuation | Editor agent + `ChapterValidator::grammarIssues()` (LanguageTool, local, no LLM tokens) |
@@ -31,11 +33,11 @@ Laravel 12.69, with **zero known dependency vulnerabilities**
 
 ---
 
-## The problem this is actually solving
+## The problem this solves
 
 The hard part of an AI book generator is not writing prose. It is that prose gets to
-*claim things*. A language model will happily write "UPI processed 16.58 billion
-transactions in October 2024 [7]" and invent the `[7]` if you only ask it nicely.
+*claim things*. A language model will happily write a precise-sounding statistic
+with a confident `[7]` attached, and invent the `[7]` if you only ask it nicely.
 
 This project treats citation integrity as a code problem rather than a prompting
 problem:
@@ -98,8 +100,11 @@ flowchart TD
 
     Verifier --> Search
 
-    Checker -.->|"FAIL, budget remaining"| Writer
-```
+Checker -.->|"FAIL, budget remaining"| Writer
+  ```
+
+  A rendered PNG of this diagram is included at
+  [`screenshots/00-architecture-diagram.png`](screenshots/00-architecture-diagram.png).
 
 ### Why this order
 
@@ -262,8 +267,8 @@ visible in the run log rather than vanishing.
 ## Source diversity is enforced, not requested
 
 Ranked purely by content length, the candidate pool hands the model one publisher's
-pages every time — PIB publishes long pages, so PIB took every slot and chapters came
-out citing a single organisation.
+pages every time — some publishers write long pages, so a single organisation took
+every slot and chapters came out citing only that one source.
 
 Asking the model to diversify does not fix this, because every alternative has already
 been filtered out before it sees the catalogue. Two caps do:
@@ -309,6 +314,8 @@ AI_SEARCH_API_KEY=tvly-...
 
 `.env` is gitignored and `.env.example` ships with blank values, so no secret is
 ever committed.
+
+> On Windows, `copy .env.example .env` instead of `cp`.
 
 ### Running it
 
@@ -393,9 +400,9 @@ reach the same wall.
 
 ## Source verification
 
-A URL returning `200 OK` is not evidence of anything. Several Indian government sites
-return a small bot-challenge page with a success status, and `npci.org.in` in
-particular can serve an 82-byte title-only stub.
+A URL returning `200 OK` is not evidence of anything. Some sites return a small
+bot-challenge or title-only stub with a success status, so a bare reachability
+check will happily accept a page with no content on it.
 
 `SourceVerifier` therefore requires:
 
@@ -403,10 +410,10 @@ particular can serve an 82-byte title-only stub.
 - **at least 400 characters of substantive text** (configurable)
 - a domain that is not on the blocked list (Wikipedia, Quora, Medium, Reddit, ...)
 
-Official Indian domains (`npci.org.in`, `rbi.org.in`, `pib.gov.in`,
-`financialservices.gov.in`, ...) are preferred and searched first. Direct retrieval
-from several of these hosts is bot-blocked, which is why the search provider fetches
-page text server-side rather than relying on local `curl`.
+Domains listed in `config/ai.php` `preferred_domains` are searched first, and
+`AI_TAVILY_INCLUDE_DOMAINS` restricts results to an allow-list server-side. Direct
+retrieval from many official hosts is bot-blocked, which is why the search provider
+fetches page text server-side rather than relying on local `curl`.
 
 ---
 
@@ -432,7 +439,7 @@ php artisan test
 The agent and pipeline tests use `FakeLLM` and `FakeSearch` doubles, so the whole
 suite runs in about 1.5 seconds with **no network calls and no API keys required**.
 
-Nine real bugs found this way, all now fixed and covered:
+Ten real bugs found this way, all now fixed and covered:
 
 - `TextUtils::stripMarkdown()` stripped `[n]` markers before sentence splitting, which
   destroyed claim-to-citation attribution and made the Fact Checker fall back to
@@ -448,10 +455,10 @@ Nine real bugs found this way, all now fixed and covered:
   accepted the result.
 - Chapters were citing a single publisher because the candidate pool was ranked by
   content length and one publisher's long pages won every slot.
-- The diversity cap grouped publishers by their last two labels, so NPCI, the RBI and
-  every other `*.org.in` host counted as one publisher, and PIB, the Finance Ministry
-  and data.gov.in counted as one. The cap meant to spread citations across trusted
-  sources was rationing slots between different regulators.
+- The diversity cap grouped publishers by their last two labels, so every host sharing a
+  public suffix counted as one publisher, and unrelated ministries and regulators
+  collapsed into a single bucket. The cap meant to spread citations across trusted
+  sources was rationing slots between different publishers.
 - A `TypeError` in the diversity rotation meant every live run silently lost its
   research results.
 - The structured-output fallback had two rungs but was documented as three: the
@@ -459,8 +466,6 @@ Nine real bugs found this way, all now fixed and covered:
 - The run record was overwritten rather than merged, and the orchestrator aborts on a
   planner or researcher failure without returning the brief. Every early failure lost
   its title and the runs table fell back to `Untitled`.
-
-Ten real bugs found this way, all now fixed and covered.
 
 The renderer and the run store both write real files, so the tests that touch them
 redirect `ai.workflow.output_dir` and `ai.storage.runs_path` to temp directories.
@@ -525,6 +530,10 @@ fails fact checking after the revision budget is spent, rather than quietly ship
 
 ## Screenshots
 
+The agent architecture:
+
+![The agent architecture](screenshots/00-architecture-diagram.png)
+
 The generator, with a run history built up from real generations:
 
 ![The generator form and run history](screenshots/02-runs-history.png)
@@ -563,11 +572,11 @@ And the whole of that standalone artifact:
   the cost of stalling on every bot-blocked government page. Live runs typically end
   with one or two.
 - **Diversity is capped, not guaranteed.** The caps stop one publisher from taking
-  every slot, but search results decide what is available, and a payment company's own
-  documentation (`razorpay.com`, `m2pfintech.com`) will be used where a regulator page
-  does not exist. Legitimate for a practical guide, weaker than a regulator's page.
-  Note that the committed artifact in `output/` was generated *before* `ssrn.com` was
-  added to the blocklist, so it still cites it; the next live run will not.
+  every slot, but search results decide what is available, and a company's own
+  documentation or blog will be used where no official page covers the point.
+  Legitimate for a practical guide, weaker than a primary source. Note that the
+  committed artifact in `output/` was generated *before* the blocklist was tightened,
+  so it still cites sources that a current run would reject; the next live run will not.
 - **A chapter can still cite very few sources.** `MIN_SOURCES_PER_CHAPTER` is a
   suggestion in the Researcher's prompt, not an enforced minimum, so one live chapter
   ran 788 words on a single citation. Enforcing a floor would need a revision trigger,
