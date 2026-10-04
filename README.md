@@ -484,6 +484,7 @@ app/Http/Controllers/BookController.php
 app/Jobs/GenerateBookJob.php
 resources/views/book/  index (form + run list), show (result + progress log)
 output/                 book.md, book.html, validation-report.json
+screenshots/             screenshots of the running app and the finished book
 ```
 
 There is no database. Run documents are plain JSON files under `storage/app/runs`;
@@ -504,7 +505,7 @@ full chapter prose and event log. The renderer is deterministic, so artifacts ca
 rebuilt from a stored run without spending a single API call:
 
 ```
-php re_render.php            # newest successful run
+php re_render.php            # best validated run
 php re_render.php 20261004-050646-qbt5r8
 ```
 
@@ -519,6 +520,36 @@ Each run writes three files to `output/`:
 
 The JSON report is the honest one: it reports the run as failed if any citation still
 fails fact checking after the revision budget is spent, rather than quietly shipping.
+
+---
+
+## Screenshots
+
+The generator, with a run history built up from real generations:
+
+![The generator form and run history](screenshots/02-runs-history.png)
+
+The brief is pre-filled from the assignment defaults, so the title, audience and
+tone are already correct on load:
+
+![The generator form](screenshots/01-generator-form.png)
+
+A finished run, showing the validated book:
+
+![The opening of a finished run](screenshots/03-final-book-opening.png)
+
+The complete three-chapter book as the app renders it:
+
+![The full book](screenshots/04-final-book-full.png)
+
+The same book as the standalone, dependency-free HTML artifact that gets written
+to `output/book.html`:
+
+![The standalone book](screenshots/05-final-book-html.png)
+
+And the whole of that standalone artifact:
+
+![The full standalone book](screenshots/06-final-book-html-full.png)
 
 ---
 
