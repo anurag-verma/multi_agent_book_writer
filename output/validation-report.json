@@ -1,0 +1,41 @@
+{
+    "passed": true,
+    "errors": [],
+    "warnings": [
+        "Chapter 1 has 2 citation(s) the fact checker could not settle.",
+        "Chapter 3 has 1 citation(s) the fact checker could not settle."
+    ],
+    "chapter_count": 3,
+    "chapters": [
+        {
+            "chapter": 1,
+            "title": "Introduction to UPI and Its Benefits",
+            "word_count": 602,
+            "citations": 6,
+            "references": 6,
+            "takeaway": "PASS",
+            "fact_check": "4 passed, 0 failed, 2 uncertain",
+            "validation": "PASS"
+        },
+        {
+            "chapter": 2,
+            "title": "Setting Up UPI Payments in Your Shop",
+            "word_count": 742,
+            "citations": 2,
+            "references": 2,
+            "takeaway": "PASS",
+            "fact_check": "2 passed, 0 failed, 0 uncertain",
+            "validation": "PASS"
+        },
+        {
+            "chapter": 3,
+            "title": "Best Practices for Managing UPI Transactions",
+            "word_count": 788,
+            "citations": 1,
+            "references": 1,
+            "takeaway": "PASS",
+            "fact_check": "0 passed, 0 failed, 1 uncertain",
+            "validation": "PASS"
+        }
+    ]
+}
